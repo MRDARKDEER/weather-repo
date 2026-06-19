@@ -1,4 +1,18 @@
+import sys
+from pathlib import Path
+from dotenv import load_dotenv
+
+root_path = Path(__file__).parent.parent
+sys.path.insert(0, str(root_path))
+
+
+env_path = root_path / '.env'
+load_dotenv(dotenv_path=env_path)
+
 import os
+print("API Key:",
+os.getenv("WEATHER_API_KEY"))
+
 import pytest
 from src.weather import WeatherAPI
 
