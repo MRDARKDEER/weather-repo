@@ -1,0 +1,87 @@
+name: Weather API Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ] hello hello
+  workflow_dispatch:  # for run manually
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+      fail-fast: false  # if version 1 fails then it will continue to test other versions
+    
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: 🐍 Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest-cov
+      
+      - name: 🔑 Set up environment variables
+        env:
+          WEATHER_API_KEY: ${{ secrets.WEATHER_API_KEY }}
+        run: |
+          echo "WEATHER_API_KEY=${WEATHER_API_KEY}" >> $GITHUB_ENV
+          echo "Environment variables set"
+      
+      - name: 🧪 Run tests with coverage
+        env:
+          WEATHER_API_KEY: ${{ secrets.WEATHER_API_KEY }}
+        run: |
+          # test run only
+          pytest tests/ -v --cov=src --cov-report=term --cov-report=html
+      
+      - name: 📊 Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-python${{ matrix.python-version }}
+          path: htmlcov/
+      
+      - name: 🎯 Test API call (optional)
+        env:
+          WEATHER_API_KEY: ${{ secrets.WEATHER_API_KEY }}
+        run: |
+          # a small API test to check if the key is working, this is optional and can be removed if not needed
+          python -c "
+          import os
+          from src.weather import WeatherAPI
+          api = WeatherAPI()
+          result = api.get_weather('Dhaka')
+          print(f'API Test Result: {result}')
+          if result.get('status') == 'failed':
+              print('⚠️ API key may be invalid or network issue')
+          else:
+              print('✅ API test passed!')
+          "
+
+  # diffrent job: API Key check (informational only)
+  check-secret:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔍 Check if secret is set
+        env:
+          WEATHER_API_KEY: ${{ secrets.WEATHER_API_KEY }}
+        run: |
+          if [ -z "$WEATHER_API_KEY" ]; then
+            echo "❌ WEATHER_API_KEY secret is not set!"
+            echo "Please add it in Settings → Secrets and variables → Actions"
+            exit 1
+          else
+            echo "✅ WEATHER_API_KEY secret is set"
+            echo "Value length: ${#WEATHER_API_KEY} characters"
+            # just show the length not the value for security reasons
+          fi
