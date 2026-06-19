@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main, develop ]
   pull_request:
-    branches: [ main ] hello hello
+    branches: [ main ]
   workflow_dispatch:  # for run manually
 
 jobs:
